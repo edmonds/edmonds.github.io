@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>BIND and GCC 4.9</title>
+  <meta charset="utf-8" />
+  <link href="http://blog.mycre.ws/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Robert Edmonds' blog" />
+  <style>
+    body {
+      width: 40em;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+<section itemscope itemtype="http://schema.org/Article">
+  <header>
+    <h2 itemprop="name">BIND and GCC 4.9</h2>
+    <p>
+      <strong>
+        <div itemprop="description">ISC recommends compiling BIND with -fno-delete-null-pointer-checks on GCC 4.9.</div>
+      </strong>
+    </p>
+  </header>
+
+  <div itemprop="articleBody">
+<p>ISC has issued an <a href="https://kb.isc.org/article/AA-01167">operational notification</a> advising the use of the
+<code>-fno-delete-null-pointer-checks</code> flag when compiling current versions of BIND
+with GCC 4.9:</p>
+<blockquote>
+<p>Beginning with GCC 4.9.0, code optimization in GCC now includes (by default)
+an optimization which is intended to eliminate unnecessary null pointer
+comparisons in compiled code.  Unfortunately this optimization removes checks
+which are necessary in BIND and the demonstrated effect is to cause
+unpredictable assertion failures during execution of named, resulting in
+termination of the server process.</p>
+<p>Future versions of BIND will be modified so that the optimizer does not
+incorrectly remove necessary checks when building from source, and until those
+versions are available multiple immediate workarounds are available.</p>
+</blockquote>
+<p>According to the <a href="https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html">GCC documentation</a>, <code>-fdelete-null-pointer-checks</code> performs
+the following optimization, and is enabled by default even when compiling with
+<code>-O0</code>:</p>
+<blockquote>
+<p>Assume that programs cannot safely dereference null pointers, and that no code
+or data element resides there. This enables simple constant folding
+optimizations at all optimization levels. In addition, other optimization
+passes in GCC use this flag to control global dataflow analyses that eliminate
+useless checks for null pointers; these assume that if a pointer is checked
+after it has already been dereferenced, it cannot be null.</p>
+</blockquote>
+<p>This optimization <a href="http://www.gnu.org/software/gcc/news/null.html">dates back to 1999</a> but it recently <a href="https://gcc.gnu.org/gcc-4.9/porting_to.html">became more aggressive</a>
+in the GCC 4.9 release:</p>
+<blockquote>
+<p>GCC might now optimize away the null pointer check in code like:</p>
+<pre><code>int copy (int* dest, int* src, size_t nbytes) {
+  memmove (dest, src, nbytes);
+  if (src != NULL)
+    return *src;
+  return 0;
+}
+</code></pre>
+<p>The pointers passed to <code>memmove</code> (and similar functions in <code>&lt;string.h&gt;</code>) must
+be non-null even when <code>nbytes==0</code>, so GCC can use that information to remove
+the check after the <code>memmove</code> call. Calling <code>copy(p, NULL, 0)</code> can therefore
+deference a null pointer and crash.</p>
+<p>The example above needs to be fixed to avoid the invalid <code>memmove</code> call, for
+example:</p>
+<pre><code>if (nbytes != 0)
+  memmove (dest, src, nbytes);
+</code></pre>
+</blockquote>
+<p>It's interesting that the ISC operational advisory labels this an "incorrect"
+optimization. I wonder if this is a similar case to the <a href="http://lwn.net/Articles/414467/">Glibc optimization</a>
+which exposed incorrect usage of <code>memcpy()</code> in many applications, <a href="https://kb.isc.org/article/AA-01085">including
+BIND</a>.</p>
+<p>Fortunately, few users should be affected by this bug, since GCC 4.9 is fairly
+new. (The upcoming <a href="http://fedoraproject.org/wiki/Releases/21/ChangeSet#GCC49">Fedora 21 release</a> will probably be the first mainstream
+distribution to ship with GCC 4.9 as the default compiler.)</p>
+  </div>
+
+  <div>
+    <i>
+      Written by 
+      <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">Robert Edmonds</span>
+      </span>
+      on
+      <time datetime="2014-06-06T02:19:08+00:00" itemprop="datePublished">2014-06-06</time>.
+    </i>
+  </div>
+</section>
+</body>
+</html>

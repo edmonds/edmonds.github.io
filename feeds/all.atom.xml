@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Robert Edmonds' blog</title><link href="http://blog.mycre.ws/" rel="alternate"></link><link href="http://blog.mycre.ws/feeds/all.atom.xml" rel="self"></link><id>http://blog.mycre.ws/</id><updated>2014-06-06T02:19:08+00:00</updated><entry><title>BIND and GCC 4.9</title><link href="http://blog.mycre.ws/articles/bind-and-gcc-49/" rel="alternate"></link><updated>2014-06-06T02:19:08+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2014-06-06:articles/bind-and-gcc-49/</id><summary type="html">&lt;p&gt;ISC has issued an &lt;a href="https://kb.isc.org/article/AA-01167"&gt;operational notification&lt;/a&gt; advising the use of the
+&lt;code&gt;-fno-delete-null-pointer-checks&lt;/code&gt; flag when compiling current versions of BIND
+with GCC 4.9:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Beginning with GCC 4.9.0, code optimization in GCC now includes (by default)
+an optimization which is intended to eliminate unnecessary null pointer
+comparisons in compiled code.  Unfortunately this optimization removes checks
+which are necessary in BIND and the demonstrated effect is to cause
+unpredictable assertion failures during execution of named, resulting in
+termination of the server process.&lt;/p&gt;
+&lt;p&gt;Future versions of BIND will be modified so that the optimizer does not
+incorrectly remove necessary checks when building from source, and until those
+versions are available multiple immediate workarounds are available.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;According to the &lt;a href="https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html"&gt;GCC documentation&lt;/a&gt;, &lt;code&gt;-fdelete-null-pointer-checks&lt;/code&gt; performs
+the following optimization, and is enabled by default even when compiling with
+&lt;code&gt;-O0&lt;/code&gt;:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Assume that programs cannot safely dereference null pointers, and that no code
+or data element resides there. This enables simple constant folding
+optimizations at all optimization levels. In addition, other optimization
+passes in GCC use this flag to control global dataflow analyses that eliminate
+useless checks for null pointers; these assume that if a pointer is checked
+after it has already been dereferenced, it cannot be null.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;This optimization &lt;a href="http://www.gnu.org/software/gcc/news/null.html"&gt;dates back to 1999&lt;/a&gt; but it recently &lt;a href="https://gcc.gnu.org/gcc-4.9/porting_to.html"&gt;became more aggressive&lt;/a&gt;
+in the GCC 4.9 release:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;GCC might now optimize away the null pointer check in code like:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;int copy (int* dest, int* src, size_t nbytes) {
+  memmove (dest, src, nbytes);
+  if (src != NULL)
+    return *src;
+  return 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The pointers passed to &lt;code&gt;memmove&lt;/code&gt; (and similar functions in &lt;code&gt;&amp;lt;string.h&amp;gt;&lt;/code&gt;) must
+be non-null even when &lt;code&gt;nbytes==0&lt;/code&gt;, so GCC can use that information to remove
+the check after the &lt;code&gt;memmove&lt;/code&gt; call. Calling &lt;code&gt;copy(p, NULL, 0)&lt;/code&gt; can therefore
+deference a null pointer and crash.&lt;/p&gt;
+&lt;p&gt;The example above needs to be fixed to avoid the invalid &lt;code&gt;memmove&lt;/code&gt; call, for
+example:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;if (nbytes != 0)
+  memmove (dest, src, nbytes);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;It's interesting that the ISC operational advisory labels this an "incorrect"
+optimization. I wonder if this is a similar case to the &lt;a href="http://lwn.net/Articles/414467/"&gt;Glibc optimization&lt;/a&gt;
+which exposed incorrect usage of &lt;code&gt;memcpy()&lt;/code&gt; in many applications, &lt;a href="https://kb.isc.org/article/AA-01085"&gt;including
+BIND&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Fortunately, few users should be affected by this bug, since GCC 4.9 is fairly
+new. (The upcoming &lt;a href="http://fedoraproject.org/wiki/Releases/21/ChangeSet#GCC49"&gt;Fedora 21 release&lt;/a&gt; will probably be the first mainstream
+distribution to ship with GCC 4.9 as the default compiler.)&lt;/p&gt;</summary></entry></feed>
