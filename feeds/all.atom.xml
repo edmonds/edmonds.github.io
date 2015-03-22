@@ -1,5 +1,240 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Robert Edmonds' blog</title><link href="http://blog.mycre.ws/" rel="alternate"></link><link href="http://blog.mycre.ws/feeds/all.atom.xml" rel="self"></link><id>http://blog.mycre.ws/</id><updated>2015-03-01T22:36:32+00:00</updated><entry><title>Converting to --upstream-vcs-tag</title><link href="http://blog.mycre.ws/articles/converting-to-upstream-vcs-tag/" rel="alternate"></link><updated>2015-03-01T22:36:32+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2015-03-01:articles/converting-to-upstream-vcs-tag/</id><summary type="html">&lt;p&gt;Recently, the Google protobuf developers &lt;a href="https://groups.google.com/d/msg/protobuf/3qvNnYo8-SM/GSMYGGBNXfoJ"&gt;announced&lt;/a&gt; a migration of their
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Robert Edmonds' blog</title><link href="http://blog.mycre.ws/" rel="alternate"></link><link href="http://blog.mycre.ws/feeds/all.atom.xml" rel="self"></link><id>http://blog.mycre.ws/</id><updated>2015-03-22T03:50:57+00:00</updated><entry><title>Bad Google repository signatures</title><link href="http://blog.mycre.ws/articles/bad-google-repository-signatures/" rel="alternate"></link><updated>2015-03-22T03:50:57+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2015-03-22:articles/bad-google-repository-signatures/</id><summary type="html">&lt;p&gt;Google publishes &lt;a href="https://www.google.com/linuxrepositories/"&gt;Linux software repositories&lt;/a&gt; for several of their products,
+including Google Chrome, which is available from the following apt source:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;deb http://dl.google.com/linux/chrome/deb/ stable main
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;These repositories are signed with an 8 year old 1024-bit DSA key:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;pub   1024D/7FAC5991 2007-03-08
+      Key fingerprint = 4CCA 1EAF 950C EE4A B839  76DC A040 830F 7FAC 5991
+uid                  Google, Inc. Linux Package Signing Key &amp;lt;linux-packages-keymaster@google.com&amp;gt;
+sub   2048g/C07CB649 2007-03-08
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Asymmetric 1024-bit keys are not considered strong enough and were, for
+instance, &lt;a href="http://googleonlinesecurity.blogspot.com/2013/11/out-with-old-stronger-certificates-with.html"&gt;aggressively retired&lt;/a&gt; from Google's SSL frontends almost two years
+ago. Such short keys should not be used to protect the integrity of software
+package repositories.&lt;/p&gt;
+&lt;p&gt;Note that this key has a longer 2048-bit ElGamal subkey, which is not actually
+used to produce signatures, but only for encryption. In fact, only a signing key
+is needed to sign the files in a secure apt repository, and, for instance, the
+&lt;a href="https://ftp-master.debian.org/keys.html"&gt;archive keys&lt;/a&gt; used to sign official debian.org repositories do not contain an
+encryption subkey.&lt;/p&gt;
+&lt;p&gt;Since years, many users have reported an &lt;a href="https://www.google.com/search?q=%22BADSIG+A040830F7FAC5991%22"&gt;error message&lt;/a&gt; like the following when
+running &lt;code&gt;apt-get update&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;W: GPG error: http://dl.google.com stable Release: The following signatures were
+invalid: BADSIG A040830F7FAC5991 Google, Inc. Linux Package Signing Key
+&amp;lt;linux-packages-keymaster@google.com&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This error might resolve itself if &lt;code&gt;apt-get update&lt;/code&gt; is run again. Apparently,
+this is due to "&lt;a href="https://code.google.com/p/chromium/issues/detail?id=107334#c12"&gt;bad pushes&lt;/a&gt;" occurring in the Google infrastructure. An example
+of this can be seen in the following &lt;code&gt;curl&lt;/code&gt; output:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;$ curl -v http://dl.google.com/linux/chrome/deb/dists/stable/Release \
+        http://dl.google.com/linux/chrome/deb/dists/stable/Release.gpg
+* Hostname was NOT found in DNS cache
+*   Trying 74.125.196.136...
+* Connected to dl.google.com (74.125.196.136) port 80 (#0)
+&amp;gt; GET /linux/chrome/deb/dists/stable/Release HTTP/1.1
+&amp;gt; User-Agent: curl/7.38.0
+&amp;gt; Host: dl.google.com
+&amp;gt; Accept: */*
+&amp;gt; 
+&amp;lt; HTTP/1.1 200 OK
+&amp;lt; Accept-Ranges: bytes
+&amp;lt; Content-Length: 1347
+&amp;lt; Content-Type: application/octet-stream
+&amp;lt; Etag: &amp;quot;518b8&amp;quot;
+&amp;lt; Expires: Sun, 22 Mar 2015 18:55:19 PDT
+&amp;lt; Last-Modified: Fri, 20 Mar 2015 04:22:00 GMT
+* Server downloads is not blacklisted
+&amp;lt; Server: downloads
+&amp;lt; X-Content-Type-Options: nosniff
+&amp;lt; X-Frame-Options: SAMEORIGIN
+&amp;lt; X-Xss-Protection: 1; mode=block
+&amp;lt; Date: Sun, 22 Mar 2015 01:55:19 GMT
+&amp;lt; Alternate-Protocol: 80:quic,p=0.5
+&amp;lt; 
+Origin: Google, Inc.
+Label: Google
+Suite: stable
+Codename: stable
+Version: 1.0
+Date: Thu, 19 Mar 2015 22:55:29 +0000
+Architectures: amd64 i386
+Components: main
+Description: Google chrome-linux repository.
+MD5Sum:
+ 53375c7a2d182d85aef6218c179040ed 144 main/binary-i386/Release
+ c556daf52ac818e4b11b84cb5943f6e0 4076 main/binary-i386/Packages
+ 867ba456bd6537e51bd344df212f4662 960 main/binary-i386/Packages.gz
+ 2b766b2639b57d5282a154cf6a00b172 1176 main/binary-i386/Packages.bz2
+ 89704f9af9e6ccd87c192de11ba4c511 145 main/binary-amd64/Release
+ fa88101278271922ec9b14b030fd2423 4082 main/binary-amd64/Packages
+ 1ba717117027f36ff4aea9c3ea60de9e 962 main/binary-amd64/Packages.gz
+ 19af18f376c986d317cadb3394c60ac5 1193 main/binary-amd64/Packages.bz2
+SHA1:
+ 59414c4175f2cc22e67ba6c30687b00c72a7eafc 144 main/binary-i386/Release
+ 1764c5418478b1077ada54c73eb501165ba79170 4076 main/binary-i386/Packages
+ db24eafac51d3e63fd41343028fb3243f96cbed6 960 main/binary-i386/Packages.gz
+ ad8be07425e88b2fdf2f6d143989cde1341a8c51 1176 main/binary-i386/Packages.bz2
+ 153199d8f866350b7853365a4adc95ee687603dd 145 main/binary-amd64/Release
+ 7ce66535b35d5fc267fe23af9947f9d27e88508b 4082 main/binary-amd64/Packages
+ a72b5e46c3be8ad403df54e4cdcd6e58b2ede65a 962 main/binary-amd64/Packages.gz
+ dbc7fddd28cc742ef8f0fb8c6e096455e18c35f8 1193 main/binary-amd64/Packages.bz2
+* Connection #0 to host dl.google.com left intact
+* Found bundle for host dl.google.com: 0x7f24e68d06a0
+* Re-using existing connection! (#0) with host dl.google.com
+* Connected to dl.google.com (74.125.196.136) port 80 (#0)
+&amp;gt; GET /linux/chrome/deb/dists/stable/Release.gpg HTTP/1.1
+&amp;gt; User-Agent: curl/7.38.0
+&amp;gt; Host: dl.google.com
+&amp;gt; Accept: */*
+&amp;gt; 
+&amp;lt; HTTP/1.1 200 OK
+&amp;lt; Accept-Ranges: bytes
+&amp;lt; Content-Length: 198
+&amp;lt; Content-Type: application/octet-stream
+&amp;lt; Etag: &amp;quot;518f4&amp;quot;
+&amp;lt; Expires: Sun, 22 Mar 2015 18:55:19 PDT
+&amp;lt; Last-Modified: Fri, 20 Mar 2015 04:05:00 GMT
+* Server downloads is not blacklisted
+&amp;lt; Server: downloads
+&amp;lt; X-Content-Type-Options: nosniff
+&amp;lt; X-Frame-Options: SAMEORIGIN
+&amp;lt; X-Xss-Protection: 1; mode=block
+&amp;lt; Date: Sun, 22 Mar 2015 01:55:19 GMT
+&amp;lt; Alternate-Protocol: 80:quic,p=0.5
+&amp;lt; 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEABECAAYFAlULm7YACgkQoECDD3+sWZFyxACeNPuK/zQ0v+3Py1n2s09Wk/Ti
+DckAni8V/gy++xIinu8OdUXv7c777V9H
+=5vT6
+-----END PGP SIGNATURE-----
+* Connection #0 to host dl.google.com left intact
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note that both the &lt;code&gt;Release&lt;/code&gt; and &lt;code&gt;Release.gpg&lt;/code&gt; files were fetched with the same
+HTTP connection, so the two files must have come from the same web frontend.
+(Though, it is possible they were served by different backends.) However, the
+detached signature in &lt;code&gt;Release.gpg&lt;/code&gt; does not match the content in &lt;code&gt;Release&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;gpgv: Signature made Fri 20 Mar 2015 12:01:58 AM EDT using DSA key ID 7FAC5991
+gpgv: BAD signature from &amp;quot;Google, Inc. Linux Package Signing Key &amp;lt;linux-packages-keymaster@google.com&amp;gt;&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Performing the same pair of fetches again, the same &lt;code&gt;Release.gpg&lt;/code&gt; file is
+returned, but the &lt;code&gt;Release&lt;/code&gt; file is slightly different:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;$ curl -v http://dl.google.com/linux/chrome/deb/dists/stable/Release \
+        http://dl.google.com/linux/chrome/deb/dists/stable/Release.gpg
+* Hostname was NOT found in DNS cache
+*   Trying 74.125.196.136...
+* Connected to dl.google.com (74.125.196.136) port 80 (#0)
+&amp;gt; GET /linux/chrome/deb/dists/stable/Release HTTP/1.1
+&amp;gt; User-Agent: curl/7.38.0
+&amp;gt; Host: dl.google.com
+&amp;gt; Accept: */*
+&amp;gt; 
+&amp;lt; HTTP/1.1 200 OK
+&amp;lt; Accept-Ranges: bytes
+&amp;lt; Content-Length: 1347
+&amp;lt; Content-Type: application/octet-stream
+&amp;lt; Etag: &amp;quot;518f3&amp;quot;
+&amp;lt; Expires: Sun, 22 Mar 2015 18:55:04 PDT
+&amp;lt; Last-Modified: Fri, 20 Mar 2015 04:05:00 GMT
+* Server downloads is not blacklisted
+&amp;lt; Server: downloads
+&amp;lt; X-Content-Type-Options: nosniff
+&amp;lt; X-Frame-Options: SAMEORIGIN
+&amp;lt; X-Xss-Protection: 1; mode=block
+&amp;lt; Date: Sun, 22 Mar 2015 01:55:04 GMT
+&amp;lt; Alternate-Protocol: 80:quic,p=0.5
+&amp;lt; 
+Origin: Google, Inc.
+Label: Google
+Suite: stable
+Codename: stable
+Version: 1.0
+Date: Fri, 20 Mar 2015 04:02:02 +0000
+Architectures: amd64 i386
+Components: main
+Description: Google chrome-linux repository.
+MD5Sum:
+ 89704f9af9e6ccd87c192de11ba4c511 145 main/binary-amd64/Release
+ fa88101278271922ec9b14b030fd2423 4082 main/binary-amd64/Packages
+ 1ba717117027f36ff4aea9c3ea60de9e 962 main/binary-amd64/Packages.gz
+ 19af18f376c986d317cadb3394c60ac5 1193 main/binary-amd64/Packages.bz2
+ 53375c7a2d182d85aef6218c179040ed 144 main/binary-i386/Release
+ c556daf52ac818e4b11b84cb5943f6e0 4076 main/binary-i386/Packages
+ 867ba456bd6537e51bd344df212f4662 960 main/binary-i386/Packages.gz
+ 2b766b2639b57d5282a154cf6a00b172 1176 main/binary-i386/Packages.bz2
+SHA1:
+ 153199d8f866350b7853365a4adc95ee687603dd 145 main/binary-amd64/Release
+ 7ce66535b35d5fc267fe23af9947f9d27e88508b 4082 main/binary-amd64/Packages
+ a72b5e46c3be8ad403df54e4cdcd6e58b2ede65a 962 main/binary-amd64/Packages.gz
+ dbc7fddd28cc742ef8f0fb8c6e096455e18c35f8 1193 main/binary-amd64/Packages.bz2
+ 59414c4175f2cc22e67ba6c30687b00c72a7eafc 144 main/binary-i386/Release
+ 1764c5418478b1077ada54c73eb501165ba79170 4076 main/binary-i386/Packages
+ db24eafac51d3e63fd41343028fb3243f96cbed6 960 main/binary-i386/Packages.gz
+ ad8be07425e88b2fdf2f6d143989cde1341a8c51 1176 main/binary-i386/Packages.bz2
+* Connection #0 to host dl.google.com left intact
+* Found bundle for host dl.google.com: 0x7ffa33d8b6a0
+* Re-using existing connection! (#0) with host dl.google.com
+* Connected to dl.google.com (74.125.196.136) port 80 (#0)
+&amp;gt; GET /linux/chrome/deb/dists/stable/Release.gpg HTTP/1.1
+&amp;gt; User-Agent: curl/7.38.0
+&amp;gt; Host: dl.google.com
+&amp;gt; Accept: */*
+&amp;gt; 
+&amp;lt; HTTP/1.1 200 OK
+&amp;lt; Accept-Ranges: bytes
+&amp;lt; Content-Length: 198
+&amp;lt; Content-Type: application/octet-stream
+&amp;lt; Etag: &amp;quot;518f4&amp;quot;
+&amp;lt; Expires: Sun, 22 Mar 2015 18:55:05 PDT
+&amp;lt; Last-Modified: Fri, 20 Mar 2015 04:05:00 GMT
+* Server downloads is not blacklisted
+&amp;lt; Server: downloads
+&amp;lt; X-Content-Type-Options: nosniff
+&amp;lt; X-Frame-Options: SAMEORIGIN
+&amp;lt; X-Xss-Protection: 1; mode=block
+&amp;lt; Date: Sun, 22 Mar 2015 01:55:05 GMT
+&amp;lt; Alternate-Protocol: 80:quic,p=0.5
+&amp;lt; 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEABECAAYFAlULm7YACgkQoECDD3+sWZFyxACeNPuK/zQ0v+3Py1n2s09Wk/Ti
+DckAni8V/gy++xIinu8OdUXv7c777V9H
+=5vT6
+-----END PGP SIGNATURE-----
+* Connection #0 to host dl.google.com left intact
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note that the &lt;code&gt;Date&lt;/code&gt; line in the &lt;code&gt;Release&lt;/code&gt; file is different:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;@@ -6 +6 @@
+-Date: Thu, 19 Mar 2015 22:55:29 +0000
++Date: Fri, 20 Mar 2015 04:02:02 +0000
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The file hashes listed in the &lt;code&gt;Release&lt;/code&gt; file are in a different order, as well,
+though the actual hash values are the same. This &lt;code&gt;Release&lt;/code&gt; file &lt;strong&gt;does&lt;/strong&gt; have a
+valid signature:&lt;/p&gt;
+&lt;pre&gt;&lt;code class="boxed"&gt;gpgv: Signature made Fri 20 Mar 2015 12:01:58 AM EDT using DSA key ID 7FAC5991
+gpgv: Good signature from &amp;quot;Google, Inc. Linux Package Signing Key &amp;lt;linux-packages-keymaster@google.com&amp;gt;&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Note that the &lt;code&gt;Release.gpg&lt;/code&gt; files in the good and bad cases are the same, and
+the same signature cannot cover two files with different content. Also note that
+the same mis-signed content is &lt;a href="https://dl.google.com/linux/chrome/deb/dists/stable/Release"&gt;available via HTTPS&lt;/a&gt;, so it is probably not
+caused by a MITM attack.&lt;/p&gt;
+&lt;p&gt;The possibility of skew between the &lt;code&gt;Release&lt;/code&gt; and &lt;code&gt;Release.gpg&lt;/code&gt; files is
+precisely why &lt;a href="https://lists.debian.org/debian-devel-announce/2009/11/msg00001.html"&gt;inline signed Release files&lt;/a&gt; were introduced, but Google's
+repositories use only the older format with a detached signature.&lt;/p&gt;
+&lt;p&gt;It would be nice if Google could fix the underlying bug in their infrastructure
+that results in mis-signed repositories being published frequently, because it
+trains users to ignore cryptographic failures.&lt;/p&gt;</summary></entry><entry><title>Converting to --upstream-vcs-tag</title><link href="http://blog.mycre.ws/articles/converting-to-upstream-vcs-tag/" rel="alternate"></link><updated>2015-03-01T22:36:32+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2015-03-01:articles/converting-to-upstream-vcs-tag/</id><summary type="html">&lt;p&gt;Recently, the Google protobuf developers &lt;a href="https://groups.google.com/d/msg/protobuf/3qvNnYo8-SM/GSMYGGBNXfoJ"&gt;announced&lt;/a&gt; a migration of their
 project's source code from an &lt;a href="https://code.google.com/p/protobuf/source/browse/"&gt;svn repository&lt;/a&gt; to a &lt;a href="https://github.com/google/protobuf"&gt;git repository&lt;/a&gt;. Up until
 this point, the &lt;a href="http://anonscm.debian.org/cgit/collab-maint/protobuf.git"&gt;Debian protobuf package repository&lt;/a&gt; had only tracked upstream
 development by embedding upstream release tarballs using &lt;code&gt;gbp import-orig&lt;/code&gt; with
