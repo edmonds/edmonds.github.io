@@ -32,6 +32,11 @@
   </header>
 
   <div itemprop="articleBody">
+<p><strong>Update</strong>: <em>I was able to get in touch with the Googlers responsible for the
+<a href="http://talks.golang.org/2013/oscon-dl.slide">dl.google.com service</a>, and the root cause for the mismatched signature problem
+described below has been found and fixed. I now consistently receive from
+Google's servers <code>Release</code> and <code>Release.gpg</code> files that pass apt's signature
+validation on my home connection.</em></p>
 <p>Google publishes <a href="https://www.google.com/linuxrepositories/">Linux software repositories</a> for several of their products,
 including Google Chrome, which is available from the following apt source:</p>
 <pre><code class="boxed">deb http://dl.google.com/linux/chrome/deb/ stable main

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Robert Edmonds' blog</title><link href="http://blog.mycre.ws/" rel="alternate"></link><link href="http://blog.mycre.ws/feeds/all.atom.xml" rel="self"></link><id>http://blog.mycre.ws/</id><updated>2015-03-22T03:50:57+00:00</updated><entry><title>Bad Google repository signatures</title><link href="http://blog.mycre.ws/articles/bad-google-repository-signatures/" rel="alternate"></link><updated>2015-03-22T03:50:57+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2015-03-22:articles/bad-google-repository-signatures/</id><summary type="html">&lt;p&gt;Google publishes &lt;a href="https://www.google.com/linuxrepositories/"&gt;Linux software repositories&lt;/a&gt; for several of their products,
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Robert Edmonds' blog</title><link href="http://blog.mycre.ws/" rel="alternate"></link><link href="http://blog.mycre.ws/feeds/all.atom.xml" rel="self"></link><id>http://blog.mycre.ws/</id><updated>2015-03-22T03:50:57+00:00</updated><entry><title>Bad Google repository signatures</title><link href="http://blog.mycre.ws/articles/bad-google-repository-signatures/" rel="alternate"></link><updated>2015-03-22T03:50:57+00:00</updated><author><name>Robert Edmonds</name></author><id>tag:blog.mycre.ws,2015-03-22:articles/bad-google-repository-signatures/</id><summary type="html">&lt;p&gt;&lt;strong&gt;Update&lt;/strong&gt;: &lt;em&gt;I was able to get in touch with the Googlers responsible for the
+&lt;a href="http://talks.golang.org/2013/oscon-dl.slide"&gt;dl.google.com service&lt;/a&gt;, and the root cause for the mismatched signature problem
+described below has been found and fixed. I now consistently receive from
+Google's servers &lt;code&gt;Release&lt;/code&gt; and &lt;code&gt;Release.gpg&lt;/code&gt; files that pass apt's signature
+validation on my home connection.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Google publishes &lt;a href="https://www.google.com/linuxrepositories/"&gt;Linux software repositories&lt;/a&gt; for several of their products,
 including Google Chrome, which is available from the following apt source:&lt;/p&gt;
 &lt;pre&gt;&lt;code class="boxed"&gt;deb http://dl.google.com/linux/chrome/deb/ stable main
 &lt;/code&gt;&lt;/pre&gt;
